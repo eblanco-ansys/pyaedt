@@ -50,7 +50,7 @@ jobs:
           cache-key: ${{ env.TESTMON_CACHE_KEY_UNIT_LINUX }}
 
       - name: Print repository tree
-        run: tree -L 2
+        run: tree -L 2 -a
 
       - name: Run unit tests
         uses: ansys/actions/tests-pytest@41f86da4c9ead510db9135e428e33df9cc6f92e1 # v10.2.3
