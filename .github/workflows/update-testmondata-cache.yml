@@ -32,6 +32,13 @@ jobs:
     env:
       TESTS_VERSION: '3.10'
     steps:
+      - name: "Install X Virtual Frame Buffer"
+        shell: bash
+        if: inputs.requires-xvfb == 'true'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y xvfb
+
       - name: Checkout repository
         uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
         with:
@@ -68,7 +75,7 @@ jobs:
           PYTEST_ARGUMENTS: ${{ env.PYTEST_ARGUMENTS }}
         run: |
           source .venv/bin/activate
-          pytest ${PYTEST_ARGUMENTS} tests/unit
+          xvfb-run pytest ${PYTEST_ARGUMENTS} tests/unit
 
       - name: Prepare testmon data for caching
         run: python -c "import sqlite3; conn = sqlite3.connect('.testmondata'); conn.execute('PRAGMA journal_mode = OFF'); conn.close()"
