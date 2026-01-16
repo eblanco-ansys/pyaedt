@@ -49,7 +49,7 @@ AEDT_PROCESS_ID = get_process_id()
 IS_STUDENT = is_student()
 
 # Extension batch arguments
-EXTENSION_DEFAULT_ARGUMENTS = {"choice": "", "velocity": 1.4, "acceleration": 0.0, "delay": 0.0}
+EXTENSION_DEFAULT_ARGUMENTS = {"choice": "", "velocity": 1.4, "acceleration": 1.0, "delay": 0.0}
 EXTENSION_TITLE = "Move It"
 
 
