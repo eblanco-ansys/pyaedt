@@ -161,7 +161,7 @@ class MCADAssemblyFrontend(ExtensionHFSSCommon):
 
         change_theme_button = ttk.Button(
             button_frame,
-            width=10,
+            width=12,
             text="\u263d",
             command=self.toggle_theme,
             style="PyAEDT.TButton",
