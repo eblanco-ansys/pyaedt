@@ -19,6 +19,7 @@ env:
   PYAEDT_LOCAL_SETTINGS_PATH: 'tests/pyaedt_settings.yaml'
   TESTMON_DATAFILE: '.testmondata'
   TESTMON_CACHE_KEY_UNIT_LINUX: 'testmondata-unit-linux'
+  TESTMON_CACHE_KEY_INTEGRATION_LINUX: 'testmondata-integration-linux'
 
 jobs:
   # ------------------------------------------------------------------
@@ -79,3 +80,62 @@ jobs:
         with:
           path: ${{ env.TESTMON_DATAFILE }}
           key: ${{ env.TESTMON_CACHE_KEY_UNIT_LINUX }}-main-${{ github.sha }}
+
+  # ------------------------------------------------------------------
+  # INTEGRATION TESTS CACHE UPDATE (LINUX)
+  # ------------------------------------------------------------------
+  update-integration-linux:
+    name: Update integration test cache (Linux)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # Needed to save cache
+    steps:
+      - name: "Install X Virtual Frame Buffer"
+        shell: bash
+        if: inputs.requires-xvfb == 'true'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y xvfb
+
+      - name: Checkout repository
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+        with:
+          persist-credentials: false
+
+      - name: Restore testmon cache
+        uses: ./.github/actions/testmon-cache
+        with:
+          testmon-datafile: ${{ env.TESTMON_DATAFILE }}
+          cache-key: ${{ env.TESTMON_CACHE_KEY_INTEGRATION_LINUX }}
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@61cb8a9741eeb8a550a1b8544337180c0fc8476b # v7.2.0
+        with:
+          enable-cache: false
+          prune-cache: true
+
+      - name: Install pyaedt and tests dependencies from lockfile
+        run: uv sync --frozen --python 3.10 --extra integration-tests
+
+      - name: Run tests marked with 'integration'
+        env:
+          ANSYSEM: ${{ env.ANSYSEM_ROOT252 }}
+          PYTEST_ARGUMENTS: ${{ env.PYTEST_ARGUMENTS }}
+        run: xvfb-run uv run pytest ${PYTEST_ARGUMENTS} tests/integration
+
+      - name: Prepare testmon data for caching
+        run: uv run python -c "import sqlite3; conn = sqlite3.connect('.testmondata'); conn.execute('PRAGMA journal_mode = OFF'); conn.close()"
+
+      - name: Delete old testmon caches
+        shell: bash
+        run: |
+          gh cache list --key ${CACHE_KEY}-main- --json key --jq '.[].key' | xargs -I {} gh cache delete {} || true
+        env:
+          CACHE_KEY: ${{ env.TESTMON_CACHE_KEY_INTEGRATION_LINUX }}
+          GH_TOKEN: ${{ github.token }}
+
+      - name: Save updated testmon cache
+        uses: actions/cache/save@9255dc7a253b0ccc959486e2bca901246202afeb # v5.0.1
+        with:
+          path: ${{ env.TESTMON_DATAFILE }}
+          key: ${{ env.TESTMON_CACHE_KEY_INTEGRATION_LINUX }}-main-${{ github.sha }}

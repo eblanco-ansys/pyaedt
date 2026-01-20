@@ -20,6 +20,7 @@ env:
   PYAEDT_LOCAL_SETTINGS_PATH: 'tests/pyaedt_settings.yaml'
   TESTMON_DATAFILE: '.testmondata'
   TESTMON_CACHE_KEY_UNIT_LINUX: 'testmondata-unit-linux'
+  TESTMON_CACHE_KEY_INTEGRATION_LINUX: 'testmondata-integration-linux'
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -83,5 +84,60 @@ jobs:
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
         with:
           name: pytest-unit
+          path: junit/test-results.xml
+        if: ${{ always() }}
+
+  integration-tests:
+    name: Integration tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: "Install X Virtual Frame Buffer"
+        shell: bash
+        if: inputs.requires-xvfb == 'true'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y xvfb
+      - name: Checkout repository
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+        with:
+          persist-credentials: false
+
+#      - name: Wait for master cache update
+#        uses: ./.github/actions/check-cache
+
+      - name: Restore testmondata cache
+        uses: ./.github/actions/testmon-cache
+        with:
+          testmon-datafile: ${{ env.TESTMON_DATAFILE }}
+          cache-key: ${{ env.TESTMON_CACHE_KEY_INTEGRATION_LINUX }}
+      - name: Print repository tree
+        run: tree -L 2 -a
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@61cb8a9741eeb8a550a1b8544337180c0fc8476b # v7.2.0
+        with:
+          enable-cache: false
+          prune-cache: true
+
+      - name: Install pyaedt and tests dependencies from lockfile
+        run: uv sync --frozen --python 3.10 --extra integration-tests
+
+      - name: Run tests marked with 'integration'
+        env:
+          ANSYSEM: ${{ env.ANSYSEM_ROOT252 }}
+          PYTEST_ARGUMENTS: ${{ env.PYTEST_ARGUMENTS }}
+        run: xvfb-run uv run pytest ${PYTEST_ARGUMENTS} tests/integration
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@671740ac38dd9b0130fbe1cec585b89eea48d3de # v5.5.2
+        with:
+          name: codecov-integration-tests
+          files: ./coverage.xml
+          flags: linux_integration
+
+      - name: Upload pytest test results
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        with:
+          name: pytest-integration
           path: junit/test-results.xml
         if: ${{ always() }}
