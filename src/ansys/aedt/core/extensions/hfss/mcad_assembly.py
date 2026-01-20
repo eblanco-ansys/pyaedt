@@ -143,10 +143,11 @@ class MCADAssemblyFrontend(ExtensionHFSSCommon):
 
     def add_toggle_theme_button_(self, parent):
         """Create a button to toggle between light and dark themes."""
-        button_frame = ttk.Frame(
+        """ button_frame = ttk.Frame(
             parent, style="PyAEDT.TFrame", relief=tkinter.SUNKEN, borderwidth=2, name="theme_button_frame"
         )
-        button_frame.pack(fill="both", expand=False, **{"padx": 5, "pady": 5})
+        button_frame.pack(fill="both", expand=False, **{"padx": 5, "pady": 5}) """
+        print("test")
 
         ttk.Button(
             button_frame,
