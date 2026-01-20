@@ -55,7 +55,7 @@ jobs:
           prune-cache: true
 
       - name: Install pyaedt and tests dependencies from lockfile
-        run: uv sync --frozen --extra unit-tests
+        run: uv sync --frozen --python 3.10 --extra unit-tests
 
       - name: Run tests marked with 'unit'
         env:
