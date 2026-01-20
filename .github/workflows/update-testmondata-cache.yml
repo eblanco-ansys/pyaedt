@@ -29,8 +29,6 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write # Needed to save cache
-    env:
-      TESTS_VERSION: '3.10'
     steps:
       - name: "Install X Virtual Frame Buffer"
         shell: bash
@@ -56,29 +54,17 @@ jobs:
           enable-cache: false
           prune-cache: true
 
-      - name: Create virtual environment
-        run: uv venv .venv
-
-      - name: Upgrade wheel and setuptools
-        run: |
-          source .venv/bin/activate
-          uv pip install -U wheel setuptools
-
-      - name: Install pyaedt and tests dependencies
-        run: |
-          source .venv/bin/activate
-          uv pip install .[unit-tests]
+      - name: Install pyaedt and tests dependencies from lockfile
+        run: uv sync --frozen --extra unit-tests
 
       - name: Run tests marked with 'unit'
         env:
           ANSYSEM: ${{ env.ANSYSEM_ROOT252 }}
           PYTEST_ARGUMENTS: ${{ env.PYTEST_ARGUMENTS }}
-        run: |
-          source .venv/bin/activate
-          xvfb-run pytest ${PYTEST_ARGUMENTS} tests/unit
+        run: xvfb-run uv run pytest ${PYTEST_ARGUMENTS} tests/unit
 
       - name: Prepare testmon data for caching
-        run: python -c "import sqlite3; conn = sqlite3.connect('.testmondata'); conn.execute('PRAGMA journal_mode = OFF'); conn.close()"
+        run: uv run python -c "import sqlite3; conn = sqlite3.connect('.testmondata'); conn.execute('PRAGMA journal_mode = OFF'); conn.close()"
 
       - name: Delete old testmon caches
         shell: bash
