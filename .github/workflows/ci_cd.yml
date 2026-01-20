@@ -46,15 +46,16 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Wait for master cache update
-        uses: ./.github/actions/check-cache
+#      - name: Wait for master cache update
+#        uses: ./.github/actions/check-cache
 
       - name: Restore testmondata cache
         uses: ./.github/actions/testmon-cache
         with:
           testmon-datafile: ${{ env.TESTMON_DATAFILE }}
           cache-key: ${{ env.TESTMON_CACHE_KEY_UNIT_LINUX }}
-
+      - name: Print repository tree
+        run: tree -L 2 -a
 
       - name: Set up uv
         uses: astral-sh/setup-uv@61cb8a9741eeb8a550a1b8544337180c0fc8476b # v7.2.0
@@ -62,26 +63,14 @@ jobs:
           enable-cache: false
           prune-cache: true
 
-      - name: Create virtual environment
-        run: uv venv .venv
-
-      - name: Upgrade wheel and setuptools
-        run: |
-          source .venv/bin/activate
-          uv pip install -U wheel setuptools
-
-      - name: Install pyaedt and tests dependencies
-        run: |
-          source .venv/bin/activate
-          uv pip install .[unit-tests]
+      - name: Install pyaedt and tests dependencies from lockfile
+        run: uv sync --frozen --python 3.10 --extra unit-tests
 
       - name: Run tests marked with 'unit'
         env:
           ANSYSEM: ${{ env.ANSYSEM_ROOT252 }}
           PYTEST_ARGUMENTS: ${{ env.PYTEST_ARGUMENTS }}
-        run: |
-          source .venv/bin/activate
-          xvfb-run pytest ${PYTEST_ARGUMENTS} tests/unit
+        run: xvfb-run uv run pytest ${PYTEST_ARGUMENTS} tests/unit
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@671740ac38dd9b0130fbe1cec585b89eea48d3de # v5.5.2
